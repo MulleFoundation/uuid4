@@ -11,6 +11,10 @@
 #if defined(_WIN32)
 #include <windows.h>
 #include <wincrypt.h>
+#else
+# if ! defined(__APPLE__) || ! defined(__MULLE_COSMOPOLITAN__)
+#  include <sys/random.h>
+# endif
 #endif
 
 #include "uuid4.h"
@@ -31,7 +35,7 @@ static uint64_t xorshift128plus(uint64_t *s) {
 
 
 int uuid4_init(void) {
-#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__)
   int res;
   FILE *fp = fopen("/dev/urandom", "rb");
   if (!fp) {
@@ -58,7 +62,13 @@ int uuid4_init(void) {
   }
 
 #else
-  #error "unsupported platform"
+  int res;
+
+  // assume getrandom() is available on other systems
+  res = getrandom( seed, sizeof(seed), 0);
+  if ( res != sizeof(seed) ) {
+    return UUID4_EFAILURE;
+  }
 #endif
   return UUID4_ESUCCESS;
 }
